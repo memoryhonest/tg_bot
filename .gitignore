@@ -1,3 +1,5 @@
+.vscode/
+config.toml
 credentials.json
 token.pickle
 
