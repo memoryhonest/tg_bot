@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import forwarder
+
 import logging
 import toml
 
@@ -14,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 cfg = toml.load(open("config.toml", "r"))
 
-
 # Define a few command handlers. These usually take the two arguments update and
 # context. Error handlers also receive the raised TelegramError object in error.
 def start(update, context):
@@ -25,46 +26,12 @@ def getid(update, context):
     """Send a message when the command /start is issued."""
     update.message.reply_text("Chat ID is {}".format(update.message.chat_id))
 
-def help(update, context):
-    """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
-
-messageReplyPair = {}
-
-def greetings(update, context):
-    msg = update.message
-    if msg.chat_id == cfg["group"]["member"]:
-        if msg.new_chat_members:
-            msg.reply_markdown("""Welcome! See [this link](https://memoryhonest.github.io) about our website!""")
-            return
-
-def forwarder(update, context):
-    msg = update.message
-    if msg.chat_id == cfg["group"]["member"]:
-        newmsg = msg.forward(cfg["group"]["admin"])
-        messageReplyPair[newmsg.message_id] = msg.message_id
-        return
-    if msg.chat_id == cfg["group"]["admin"]:
-        # maybe returned of some new message
-        if msg.reply_to_message:
-            msg_rid = messageReplyPair.get(msg.reply_to_message.message_id)
-            # Only reply to messages we had sent and recorded
-            if msg_rid:
-                context.bot.send_message(cfg["group"]["member"], msg.text, reply_to_message_id = msg_rid)
-            return
-
-
-
 def error(update, context):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
-
 def main():
     """Start the bot."""
-
-    # Read config
-    
 
     # Create the Updater and pass it your bot's token.
     # Make sure to set use_context=True to use the new context based callbacks
@@ -77,12 +44,36 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("getid", getid))
-    dp.add_handler(CommandHandler("help", help))
+    # dp.add_handler(CommandHandler("help", help))
 
-    # on noncommand i.e message - forward to admin group and reply
-    dp.add_handler(MessageHandler(Filters.text, forwarder))
-    dp.add_handler(MessageHandler(Filters.status_update.new_chat_members, greetings))
-
+    # Add admin group handler
+    for k in cfg["groups"]:
+        v = cfg["groups"][k]
+        if not v["enabled"]:
+            continue
+        h = forwarder.GroupMessageForwarder(v)
+        # Greeting message
+        dp.add_handler(group=0, handler=MessageHandler(
+            filters=(Filters.status_update.new_chat_members &
+                     Filters.chat(v["member"])),
+            callback=h.greetings))
+        # Forwarding ability
+        dp.add_handler(group=1, handler=MessageHandler(
+            filters=(Filters.text & Filters.chat(v["member"])),
+            callback=h.roleMember))
+        dp.add_handler(group=1, handler=MessageHandler(
+            filters=(Filters.text & Filters.chat(v["admin"])),
+            callback=h.roleAdmin))
+        # Help command
+        dp.add_handler(group=2, handler=CommandHandler(
+            "help",
+            filters=(Filters.command & Filters.chat(v["admin"])),
+            callback=h.helpAdmin))
+        # Admin commands
+        dp.add_handler(group=2, handler=CommandHandler(
+            "admin",
+            filters=(Filters.command & Filters.chat(v["admin"])),
+            callback=h.adminManage))
     # log all errors
     dp.add_error_handler(error)
 

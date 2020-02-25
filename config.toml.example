@@ -1,0 +1,11 @@
+[bot]
+key = "YOUR_KEY"
+
+[groups]
+
+[groups.TestWorker]
+enabled = true
+greetings = "A greeting message for new memeber"
+member = -1  # Member's group
+admin = -2   # Admin's group
+admin_manager = true
