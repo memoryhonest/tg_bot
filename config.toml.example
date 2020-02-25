@@ -8,4 +8,6 @@ enabled = true
 greetings = "A greeting message for new memeber"
 member = -1  # Member's group
 admin = -2   # Admin's group
+greetings_auto = true
 admin_manager = true
+message_forwarding = true

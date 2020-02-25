@@ -20,9 +20,18 @@ class GroupMessageForwarder():
 `/getid` 拉取会话ID，调试用。"""
         if self.cfg["admin_manager"]:
             self.help_text += """
+--------------------------------
 `/admin add` 在成员群中将自己设置管理员。
-`/admin del` 在成员群中将自己移除管理员。
-            """
+`/admin del` 在成员群中将自己移除管理员。"""
+        if self.cfg["message_forwarding"]:
+            self.help_text += """
+--------------------------------
+本bot将自动把成员群的消息转发到本群（管理群）中
+对转发消息的回复将同步到成员群中"""
+        if self.cfg["greetings_auto"]:
+            self.help_text += """
+--------------------------------
+当成员群有新人时，本bot将自动发送欢迎消息"""
 
     def helpAdmin(self, update, context):
         """Send a message when the command /help is issued."""
@@ -61,12 +70,16 @@ class GroupMessageForwarder():
             msg.reply_markdown("设置失败")
         
     def greetings(self, update, context):
+        if not self.cfg["greetings_auto"]:
+            return
         msg = update.message
         if msg.new_chat_members:
             msg.reply_markdown(self.cfg["greetings"])
             return
 
     def roleMember(self, update, context):
+        if not self.cfg["message_forwarding"]:
+            return
         if update.edited_message:
             # If member edit a message, send an alert
             msg = update.edited_message
@@ -103,6 +116,8 @@ class GroupMessageForwarder():
         self.fwdMessagePair_rev[msg.message_id] = newmsg.message_id
 
     def roleAdmin(self, update, context):
+        if not self.cfg["message_forwarding"]:
+            return
         if update.edited_message:
             # If admin edit a message, delete old one and send again
             msg = update.edited_message
