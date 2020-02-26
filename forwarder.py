@@ -22,7 +22,8 @@ class GroupMessageForwarder():
             self.help_text += """
 --------------------------------
 `/admin add` 在成员群中将自己设置管理员。
-`/admin del` 在成员群中将自己移除管理员。"""
+`/admin del` 在成员群中将自己移除管理员。
+`/admin invite` 获得一个永久有效的邀请链接"""
         if self.cfg["message_forwarding"]:
             self.help_text += """
 --------------------------------
@@ -43,7 +44,7 @@ class GroupMessageForwarder():
             return
         # See command type
         msg = update.message
-        cmds = msg.text.split(maxsplit=2)
+        cmds = msg.text.split(maxsplit=3)
         if len(cmds) < 2:
             self.helpAdmin(update, context)
             return
@@ -61,12 +62,24 @@ class GroupMessageForwarder():
                 user_id = user.id,
                 can_change_info=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False
             )
+        elif cmds[1] == "invite":
+            r = context.bot.export_chat_invite_link(self.cfg["member"])
+            if r:
+                r = msg.reply_markdown("您获得了法宝：[加群链接](%s)"%r)
+                r = None
+        elif cmds[1] == "debug": # small debug backdoor to see internal structs
+            pass
+            m = context.bot.get_chat(self.cfg["member"])
+            m = m.get_administrators()
+            msg.reply_markdown("*苟利国家生死以 岂因祸福避趋之*")
         else:
             self.helpAdmin(update, context)
-            return      
-        if r:
+            return  
+        if r == None:
+            pass 
+        elif r == True:
             msg.reply_markdown("设置成功")
-        else:
+        elif r == False:
             msg.reply_markdown("设置失败")
         
     def greetings(self, update, context):
