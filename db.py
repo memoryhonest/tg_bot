@@ -22,21 +22,33 @@ class DB():
             # Create admin table
             c.execute(''' CREATE TABLE IF NOT EXISTS admins(
                                 ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-                                USERID INT NOT NULL UNIQUE,
+                                USER_ID INT NOT NULL UNIQUE,
                                 IS_DELETE INT NOT NULL) ''')
         finally:
             self.db.commit()
             c.close()
 
-    """
-    action: 1=add admin, 0=del admin
-    """
+    def admin_test(self, adminID):
+        c = self.db.cursor()
+        r = False
+        try:
+            c.execute(
+                'SELECT user_id FROM admins WHERE is_delete = 0 AND user_id = %s', (adminID,))
+            c.fetchall()
+            r = (c.rowcount == 1)
+        finally:
+            self.db.commit()
+            c.close()
+        return r
 
     def admin_config(self, adminID, action):
+        """
+        action: 1=add admin, 0=del admin
+        """
         action = 0 if action == 1 else 1
         c = self.db.cursor()
         try:
-            c.execute('INSERT INTO admins (userid, is_delete) '
+            c.execute('INSERT INTO admins (user_id, is_delete) '
                       'VALUES (%s, %s) '
                       'ON DUPLICATE KEY UPDATE is_delete = %s', (adminID, action, action))
         finally:

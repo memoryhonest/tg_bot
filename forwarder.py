@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from telegram import ParseMode
+from telegram import ParseMode, InlineKeyboardButton, InlineKeyboardMarkup
 
 
 class GroupMessageForwarder():
@@ -29,8 +29,6 @@ class GroupMessageForwarder():
             self._command_handlers["add"] = self.admin_add
             self._command_handlers["del"] = self.admin_del
             self._command_handlers["invite"] = self.admin_invite
-            self._command_handlers["register"] = self.admin_register
-            self._command_handlers["deregister"] = self.admin_register
             self.help_text += """
 --------------------------------
 成员群管理功能已经启动。在管理员群中发送消息：
@@ -38,14 +36,23 @@ class GroupMessageForwarder():
 `/admin del` 在成员群中将自己移除管理员。
 `/admin invite` 获得一个永久有效的Members群邀请链接"""
         if self.cfg["silent_mode"]:
+            # Start invite link scheduler
+            self._admin_invite_link_scheduler_up = False
+            self._admin_invite_link = ""
+            self._command_handlers["register"] = self.admin_register
+            self._command_handlers["deregister"] = self.admin_register
             self.help_text += """
 --------------------------------
 本bot目前工作在静默模式下。
 在静默模式中，您可以在管理群发送：
-`/admin register` 将自己注册为管理员
-`/admin deregister` 将自己从管理员注销
-之后，您可以对bot私聊发送：
-`hakuna matata` 获取加入Admin群的邀请链接，链接有效期60秒，入群后您将成为管理员。"""
+`/admin register` 加入静默模式
+`/admin deregister` 退出静默模式
+若您已经加入了静默模式，可对bot私聊发送：
+`%s` 获取加入Admin群的邀请链接""" % (self.cfg["silent_key"])
+
+    def _reload_admin_invite(self, context):
+        self._admin_invite_link = context.bot.export_chat_invite_link(
+            self.cfg["admin"])
 
     def helpAdmin(self, update, context):
         """Send a message when the command /help is issued."""
@@ -81,6 +88,27 @@ class GroupMessageForwarder():
             self.db.admin_config(update.message.from_user.id, 0)
         else:
             raise ValueError("Handler sent wrong message to me")
+        return True
+
+    def silentMessage(self, update, context):
+        if not self.cfg["silent_mode"]:
+            return
+        t = update.message.text
+        if t.strip() != self.cfg["silent_key"]:
+            return
+        # Test if admin
+        if not self.db.admin_test(update.message.from_user.id):
+            return
+        # Start the scheduler if not up yet
+        if not self._admin_invite_link_scheduler_up:
+            self._reload_admin_invite(context)
+            context.job_queue.run_repeating(self._reload_admin_invite, 180)
+            self._admin_invite_link_scheduler_up = True
+        update.message.reply_text("点击按钮进入管理群。链接过期失效，若无法使用请重新申请。",
+                                  reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
+                                      text = "加入群聊",
+                                      url=self._admin_invite_link
+                                  )]]))
 
     def adminManage(self, update, context):
         if not self.cfg["admin_cmds"]:
@@ -97,10 +125,6 @@ class GroupMessageForwarder():
         r = None
         if not handler == None:
             r = handler(update, context, cmds)
-        elif cmds[1] == "register" and self.cfg["silent_mode"]:  # admin register
-            # Get sender
-            # Add sender into the database
-            pass
         elif cmds[1] == "debug":  # small debug backdoor to see internal structs
             pass
             m = context.bot.get_chat(self.cfg["member"])

@@ -57,7 +57,6 @@ def main():
         v = cfg["groups"][k]
         if not v["enabled"]:
             continue
-        # FIXME the database location is fixed
         # Init database
         d = db.DB(cfg["db"])
         h = forwarder.GroupMessageForwarder(v, d)
@@ -83,10 +82,12 @@ def main():
             "admin",
             filters=(Filters.command & Filters.chat(v["admin"])),
             callback=h.adminManage))
-        # # Silent mode
-        # dp.add_handler(group=0, handler=MessageHandler(
-        #     filters=(Filters.private)),
-        #     callback=h.silentMessage)
+        # Silent mode
+        dp.add_handler(group=0, handler=MessageHandler(
+            filters=(Filters.private & Filters.text),
+            callback=h.silentMessage,
+            pass_job_queue=True))
+
     # log all errors
     dp.add_error_handler(error)
 
