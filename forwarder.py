@@ -5,8 +5,9 @@ from telegram import ParseMode
 
 
 class GroupMessageForwarder():
-    def __init__(self, cfg):
+    def __init__(self, cfg, db):
         self.cfg = cfg
+        self.db = db
         self.membergroupID = self.cfg["member"]
         self.admingroupID = self.cfg["admin"]
         # Save member->admin forward msg ID with original member msg ID
@@ -71,6 +72,8 @@ class GroupMessageForwarder():
             r = update.message.reply_markdown("您获得了法宝：[加群链接](%s)"%r)
             r = None
         return r
+    def admin_register(self, update, context, cmds):
+        return
     def adminManage(self, update, context):
         if not self.cfg["admin_cmds"]:
             self.helpAdmin(update, context)

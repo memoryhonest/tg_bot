@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import forwarder
+import db
 
 import logging
 import toml
@@ -51,7 +52,11 @@ def main():
         v = cfg["groups"][k]
         if not v["enabled"]:
             continue
-        h = forwarder.GroupMessageForwarder(v)
+        # FIXME the database location is fixed
+        # Init database
+        db_key = "db/group_%s.sqlite3"%k
+        d = db.DB(db_key)
+        h = forwarder.GroupMessageForwarder(v, d)
         # Greeting message
         dp.add_handler(group=0, handler=MessageHandler(
             filters=(Filters.status_update.new_chat_members &
