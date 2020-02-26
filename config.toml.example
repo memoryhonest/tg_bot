@@ -1,13 +1,24 @@
 [bot]
 key = "YOUR_KEY"
 
+[db]
+host = "host"
+port = 80
+username = "username"
+password = "password"
+database = "database"
+
 [groups]
 
 [groups.TestWorker]
+# Master switch
 enabled = true
-greetings = "A greeting message for new memeber"
+# Message forwarding
+message_forwarding = true
 member = -1  # Member's group
 admin = -2   # Admin's group
+# Greetings
 greetings_auto = true
-admin_manager = true
-message_forwarding = true
+greetings = "A greeting message for new memeber"
+# Group admin mode
+admin_cmds = true

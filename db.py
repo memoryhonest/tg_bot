@@ -1,33 +1,68 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sqlite3
+import mysql.connector
+
 
 class DB():
-    def __init__(self, name):
-        self.db = sqlite3.connect(name)
+    def __init__(self, cfg):
+        self.db = mysql.connector.connect(
+            username=cfg["username"], password=cfg["password"], database=cfg["database"], host=cfg["host"], port=cfg["port"])
         if not self.db:
             raise ValueError("Can not open DB")
         c = self.db.cursor()
         # Create message table
         c.execute(''' CREATE TABLE IF NOT EXISTS message_record(
-                            ID INT PRIMARY KEY NOT NULL,
-                            SENDER_SIDE TEXT NOT NULL,
+                            ID INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+                            SENDER_LOCATION TEXT NOT NULL,
                             LEFT_ID TEXT NOT NULL,
-                            RIGHT_ID INT NOT NULL) ''')
+                            RIGHT_ID INT NOT NULL,
+                            IS_DELETE INT NOT NULL) ''')
         # Create admin table
         c.execute(''' CREATE TABLE IF NOT EXISTS admins(
                             ID INT PRIMARY KEY NOT NULL,
-                            USERID TEXT NOT NULL,
-                            LEFT_ID TEXT NOT NULL,
-                            RIGHT_ID INT NOT NULL) ''')
+                            USERID TEXT NOT NULL
+                            ) ''')
         self.db.commit()
         c.close()
-    
-    def insert_message_record(self, sender, leftID, rightID):
+
+    def insert_message_record(self, location, leftID, rightID):
         c = self.db.cursor()
-        c.execute('INSERT INTO message_record VALUES (NULL,?,?,?)', sender, leftID, rightID)
+        c.execute('INSERT INTO message_record '
+                      '(sender_location, left_id, right_id, is_delete) '
+                      'VALUES (%s,%s,%s,0)', (location, leftID, rightID))
         self.db.commit()
+        c.close()
+
+    def get_message_record(self, location, leftID=None, rightID=None):
+        if leftID == None and rightID == None:
+            raise ValueError("Invalid input parameters. Should have one value")
+        if not (leftID == None or rightID == None):
+            raise ValueError("Both ID provided")
+        c = self.db.cursor()
+        if leftID == None:
+            v = c.execute('SELECT left_id FROM message_record WHERE '
+                          'is_delete = 0 AND sender_location = %s AND right_id = %s',
+                          (location, rightID))
+        else:
+            v = c.execute('SELECT right_id FROM message_record WHERE '
+                          'is_delete = 0 AND sender_location = %s AND left_id = %s', (location, leftID))
+        v = c.fetchone()
+        if v == None:
+            return None
+        if len(v) != 1:
+            raise ValueError("Strange value returned by SQLite")
+        self.db.commit()
+        c.close()
+        return v[0]
+
+    def remove_message_record(self, location, leftID, rightID):
+        c = self.db.cursor()
+        c.execute('UPDATE message_record SET is_delete = 1 WHERE '
+                      'is_delete = 0 AND sender_location = %s '
+                      'AND left_id = %s AND right_id = %s', (location, leftID, rightID))
+        self.db.commit()
+        c.close()
 
     def __del__(self):
         self.db.Close()

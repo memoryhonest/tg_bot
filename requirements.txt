@@ -3,3 +3,4 @@ google-auth-httplib2
 google-auth-oauthlib
 python-telegram-bot==12.4.2
 toml==0.10.0
+MySQL-connector-python==8.0.19

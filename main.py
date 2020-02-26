@@ -54,8 +54,7 @@ def main():
             continue
         # FIXME the database location is fixed
         # Init database
-        db_key = "db/group_%s.sqlite3"%k
-        d = db.DB(db_key)
+        d = db.DB(cfg["db"])
         h = forwarder.GroupMessageForwarder(v, d)
         # Greeting message
         dp.add_handler(group=0, handler=MessageHandler(
