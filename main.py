@@ -19,17 +19,22 @@ cfg = toml.load(open("config.toml", "r"))
 
 # Define a few command handlers. These usually take the two arguments update and
 # context. Error handlers also receive the raised TelegramError object in error.
+
+
 def start(update, context):
     """Send a message when the command /start is issued."""
     update.message.reply_text('Hi!')
+
 
 def getid(update, context):
     """Send a message when the command /start is issued."""
     update.message.reply_text("Chat ID is {}".format(update.message.chat_id))
 
+
 def error(update, context):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, context.error)
+
 
 def main():
     """Start the bot."""
@@ -78,6 +83,10 @@ def main():
             "admin",
             filters=(Filters.command & Filters.chat(v["admin"])),
             callback=h.adminManage))
+        # # Silent mode
+        # dp.add_handler(group=0, handler=MessageHandler(
+        #     filters=(Filters.private)),
+        #     callback=h.silentMessage)
     # log all errors
     dp.add_error_handler(error)
 
