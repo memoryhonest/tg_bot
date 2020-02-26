@@ -15,15 +15,9 @@ class GroupMessageForwarder():
         # Save admin->member reply msg ID with original admin msg ID
         self.repMessagePair = {}
         self.repMessagePair_rev = {}
-        self.help_text =  """管理群Bot使用说明：
+        self.help_text =  """啵叽的帮助：
 `/help` 显示本帮助
 `/getid` 拉取会话ID，调试用。"""
-        if self.cfg["admin_manager"]:
-            self.help_text += """
---------------------------------
-`/admin add` 在成员群中将自己设置管理员。
-`/admin del` 在成员群中将自己移除管理员。
-`/admin invite` 获得一个永久有效的邀请链接"""
         if self.cfg["message_forwarding"]:
             self.help_text += """
 --------------------------------
@@ -34,12 +28,51 @@ class GroupMessageForwarder():
 --------------------------------
 当成员群有新人时，本bot将自动发送欢迎消息"""
 
+        # Register all handlers
+        self._command_handlers = {}
+        if self.cfg["admin_cmds"]:
+            self._command_handlers["add"] = self.admin_add 
+            self._command_handlers["del"] = self.admin_del
+            self._command_handlers["invite"] = self.admin_invite
+            self.help_text += """
+--------------------------------
+成员群管理功能已经启动。在管理员群中发送消息：
+`/admin add` 在成员群中将自己设置管理员。
+`/admin del` 在成员群中将自己移除管理员。
+`/admin invite` 获得一个永久有效的Members群邀请链接"""
+        if self.cfg["silent_mode"]:
+            self.help_text += """
+--------------------------------
+本bot目前工作在静默模式下。
+在静默模式中，您可以在管理群发送：
+`/admin register` 将自己注册为管理员
+之后，您可以对bot私聊发送：
+`hakuna matata` 获取加入Admin群的邀请链接，链接有效期60秒，入群后您将成为管理员。"""
+
     def helpAdmin(self, update, context):
         """Send a message when the command /help is issued."""
         update.message.reply_markdown(self.help_text)
 
+    def admin_add(self, update, context, cmds):
+        return context.bot.promote_chat_member(
+                chat_id = self.cfg["member"], 
+                user_id = update.message.from_user.user.id,
+                can_change_info=True, can_invite_users=True, can_restrict_members=True, can_pin_messages=True, can_promote_members=True
+            )
+    def admin_del(self, update, context, cmds):
+        return context.bot.promote_chat_member(
+                chat_id = self.cfg["member"], 
+                user_id = update.message.from_user.user.id,
+                can_change_info=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False
+            )
+    def admin_invite(self, update, context, cmds):
+        r = context.bot.export_chat_invite_link(self.cfg["member"])
+        if r:
+            r = update.message.reply_markdown("您获得了法宝：[加群链接](%s)"%r)
+            r = None
+        return r
     def adminManage(self, update, context):
-        if not self.cfg["admin_manager"]:
+        if not self.cfg["admin_cmds"]:
             self.helpAdmin(update, context)
             return
         # See command type
@@ -48,25 +81,15 @@ class GroupMessageForwarder():
         if len(cmds) < 2:
             self.helpAdmin(update, context)
             return
+        handler = self._command_handlers.get(cmds[1])
 
-        user = msg.from_user
-        if cmds[1] == "add":
-            r = context.bot.promote_chat_member(
-                chat_id = self.cfg["member"], 
-                user_id = user.id,
-                can_change_info=True, can_invite_users=True, can_restrict_members=True, can_pin_messages=True, can_promote_members=True
-            )
-        elif cmds[1] == "del":
-            r = context.bot.promote_chat_member(
-                chat_id = self.cfg["member"], 
-                user_id = user.id,
-                can_change_info=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False
-            )
-        elif cmds[1] == "invite":
-            r = context.bot.export_chat_invite_link(self.cfg["member"])
-            if r:
-                r = msg.reply_markdown("您获得了法宝：[加群链接](%s)"%r)
-                r = None
+        r = None
+        if not handler == None:
+            r = handler(update, context, cmds)
+        elif cmds[1] == "register" and self.cfg["silent_mode"]: # admin register
+            # Get sender
+            # Add sender into the database
+            pass
         elif cmds[1] == "debug": # small debug backdoor to see internal structs
             pass
             m = context.bot.get_chat(self.cfg["member"])
