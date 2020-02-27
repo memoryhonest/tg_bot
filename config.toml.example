@@ -22,3 +22,5 @@ greetings_auto = true
 greetings = "A greeting message for new memeber"
 # Group admin mode
 admin_cmds = true
+silent_mode = true
+silent_key = "hold my beer"

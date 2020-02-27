@@ -106,7 +106,7 @@ class GroupMessageForwarder():
             self._admin_invite_link_scheduler_up = True
         update.message.reply_text("点击按钮进入管理群。链接过期失效，若无法使用请重新申请。",
                                   reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
-                                      text = "加入群聊",
+                                      text="加入群聊",
                                       url=self._admin_invite_link
                                   )]]))
 
