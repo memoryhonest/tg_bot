@@ -60,6 +60,8 @@ def main():
         # Init database
         d = db.DB(cfg["db"])
         h = forwarder.GroupMessageForwarder(v, d)
+        # Reload db every 10 minuteds
+        dp.job_queue.run_repeating(d.ping, 60*10)
         # Greeting message
         dp.add_handler(group=0, handler=MessageHandler(
             filters=(Filters.status_update.new_chat_members &

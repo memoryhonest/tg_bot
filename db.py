@@ -2,6 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import mysql.connector
+import logging
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 
 class DB():
@@ -27,6 +33,12 @@ class DB():
         finally:
             self.db.commit()
             c.close()
+
+    def ping(self, context):
+        try:
+            self.db.ping(reconnect=True, attempts=3, delay=5)
+        except mysql.connector.Error as err:
+            logger.warning(err.msg)
 
     def admin_test(self, adminID):
         c = self.db.cursor()
