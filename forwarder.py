@@ -65,14 +65,14 @@ class GroupMessageForwarder():
         return context.bot.promote_chat_member(
             chat_id=self.membergroupID,
             user_id=update.message.from_user.id,
-            can_change_info=True, can_invite_users=True, can_restrict_members=True, can_pin_messages=True, can_promote_members=True
+            can_delete_messages=True, can_change_info=True, can_invite_users=True, can_restrict_members=True, can_pin_messages=True, can_promote_members=True
         )
 
     def admin_del(self, update, context, cmds):
         return context.bot.promote_chat_member(
             chat_id=self.membergroupID,
             user_id=update.message.from_user.id,
-            can_change_info=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False
+            can_delete_messages=False, can_change_info=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False
         )
 
     def admin_invite(self, update, context, cmds):
