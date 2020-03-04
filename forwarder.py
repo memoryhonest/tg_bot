@@ -83,7 +83,7 @@ class GroupMessageForwarder():
         return r
 
     def admin_send(self, update, context, cmds):
-        r = context.bot.send_message(self.membergroupID, cmds[2])
+        r = context.bot.send_message(self.membergroupID, ' '.join(cmds[2:]))
         # We send a new message in Member group.
         # New message id of member group is LEFT
         # The message id related in admin group is RIGHT
