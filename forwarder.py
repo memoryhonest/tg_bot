@@ -10,21 +10,24 @@ class GroupMessageForwarder():
         self.db = db
         self.membergroupID = self.cfg["member"]
         self.admingroupID = self.cfg["admin"]
+        self._command_handlers = {}
         self.help_text = """啵叽的帮助：
 `/help` 显示本帮助
 `/getid` 拉取会话ID，调试用。"""
         if self.cfg["message_forwarding"]:
+            self._command_handlers["send"] = self.admin_send
             self.help_text += """
 --------------------------------
 本bot将自动把成员群的消息转发到本群（管理群）中
-对转发消息的回复将同步到成员群中"""
+对转发消息的回复将同步到成员群中
+想主动发送消息？请使用指令
+`/admin send` 你要发送的消息"""
         if self.cfg["greetings_auto"]:
             self.help_text += """
 --------------------------------
 当成员群有新人时，本bot将自动发送欢迎消息"""
 
         # Register all handlers
-        self._command_handlers = {}
         if self.cfg["admin_cmds"]:
             self._command_handlers["add"] = self.admin_add
             self._command_handlers["del"] = self.admin_del
@@ -52,7 +55,7 @@ class GroupMessageForwarder():
 
     def _reload_admin_invite(self, context):
         self._admin_invite_link = context.bot.export_chat_invite_link(
-            self.cfg["admin"])
+            self.admingroupID)
 
     def helpAdmin(self, update, context):
         """Send a message when the command /help is issued."""
@@ -60,25 +63,33 @@ class GroupMessageForwarder():
 
     def admin_add(self, update, context, cmds):
         return context.bot.promote_chat_member(
-            chat_id=self.cfg["member"],
+            chat_id=self.membergroupID,
             user_id=update.message.from_user.id,
             can_change_info=True, can_invite_users=True, can_restrict_members=True, can_pin_messages=True, can_promote_members=True
         )
 
     def admin_del(self, update, context, cmds):
         return context.bot.promote_chat_member(
-            chat_id=self.cfg["member"],
+            chat_id=self.membergroupID,
             user_id=update.message.from_user.id,
             can_change_info=False, can_invite_users=False, can_restrict_members=False, can_pin_messages=False, can_promote_members=False
         )
 
     def admin_invite(self, update, context, cmds):
-        r = context.bot.export_chat_invite_link(self.cfg["member"])
+        r = context.bot.export_chat_invite_link(self.membergroupID)
         if r:
             r = update.message.reply_markdown("您获得了法宝：[加群链接](%s)" % r)
             r = None
         return r
 
+    def admin_send(self, update, context, cmds):
+        r = context.bot.send_message(self.membergroupID, cmds[2])
+        # We send a new message in Member group.
+        # New message id of member group is LEFT
+        # The message id related in admin group is RIGHT
+        self.db.insert_message_record(
+            "member", r.message_id, update.message.message_id)
+    
     def admin_register(self, update, context, cmds):
         if not self.cfg["silent_mode"]:
             return
@@ -127,7 +138,7 @@ class GroupMessageForwarder():
             r = handler(update, context, cmds)
         elif cmds[1] == "debug":  # small debug backdoor to see internal structs
             pass
-            m = context.bot.get_chat(self.cfg["member"])
+            m = context.bot.get_chat(self.membergroupID)
             m = m.get_administrators()
             msg.reply_markdown("*苟利国家生死以 岂因祸福避趋之*")
         else:
